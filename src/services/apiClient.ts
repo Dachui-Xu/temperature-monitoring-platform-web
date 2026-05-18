@@ -1,51 +1,66 @@
-import type { ApiResponse } from '../types.js';
-
-// 配置后端基础地址
-// 如果您的后端所有接口都有 /api 前缀，请保留 /api
-export const BASE_URL = 'http://127.0.0.1:1688';
-
-// 定义通用的请求选项
-interface RequestOptions extends RequestInit {
-  token?: string;
-}
-
-/**
- * 封装的基础 Fetch 请求函数
- */
-async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const { token, headers, ...customConfig } = options;
-
-  const defaultHeaders: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-
-  const storedToken = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
-  if (storedToken || token) {
-    Object.assign(defaultHeaders, {
-      Authorization: `Bearer ${token || storedToken}`,
-    });
-  }
-
-  const config: RequestInit = {
-    ...customConfig,
-    headers: {
-      ...defaultHeaders,
-      ...headers,
-    },
-  };
-
-  try {
-    const response = await fetch(`${BASE_URL}${endpoint}`, config);
-    const responseText = await response.text();
-    let json: any;
-    try {
-      json = responseText ? JSON.parse(responseText) : undefined;
-    } catch (parseError) {
-      if (response.ok) {
-        throw parseError;
-      }
-      json = undefined;
+    import type { ApiResponse } from '../types.js';
+    
+    // 配置后端基础地址
+    // 如果您的后端所有接口都有 /api 前缀，请保留 /api
+    export const BASE_URL = 'http://127.0.0.1:1688'; 
+    
+    // 定义通用的请求选项
+    interface RequestOptions extends RequestInit {
+      token?: string;
     }
+    
+    /**
+     * 封装的基础 Fetch 请求函数
+     */
+    async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+      const { token, headers, ...customConfig } = options;
+    
+      const defaultHeaders: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+    
+      const storedToken = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      if (storedToken || token) {
+        Object.assign(defaultHeaders, { 
+          'Authorization': `Bearer ${token || storedToken}` 
+        });
+      }
+    
+      const config: RequestInit = {
+        ...customConfig,
+        headers: {
+          ...defaultHeaders,
+          ...headers,
+        },
+      };
+    
+      try {
+        const response = await fetch(`${BASE_URL}${endpoint}`, config);
+        const responseText = await response.text();
+        let json: any;
+        try {
+          json = responseText ? JSON.parse(responseText) : undefined;
+        } catch (parseError) {
+          if (response.ok) {
+            throw parseError;
+          }
+          json = undefined;
+        }
+    
+        if (!response.ok) {
+          if (response.status === 401) {
+            if (typeof localStorage !== 'undefined') {
+              localStorage.removeItem('auth_token');
+            }
+            throw new Error('登录已过期，请重新登录');
+          }
+          throw new Error(json?.message || `请求失败: ${response.status}`);
+        }
+
+        // 204/205 或空响应体的成功请求没有 JSON 内容，直接返回 undefined。
+        if (json === undefined) {
+          return undefined as T;
+        }
 
     if (!response.ok) {
       if (response.status === 401) {

@@ -47,11 +47,13 @@ test('falls back to HTTP status when an error response is not JSON', async () =>
   await assert.rejects(() => apiClient.get('/devices'), /请求失败: 500/);
 });
 
-test('serializes JSON request bodies for documented API calls', async () => {
+test('preserves explicit form content type for login requests', async () => {
   mockFetch(Response.json({ access_token: 'token', token_type: 'bearer' }));
 
-  await apiClient.post('/users/login', { username: 'admin', password: 'secret' });
+  await apiClient.post('/users/login', 'username=admin&password=secret', {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  });
 
-  assert.equal((calls[0].init?.headers as Record<string, string>)['Content-Type'], 'application/json');
-  assert.equal(calls[0].init?.body, JSON.stringify({ username: 'admin', password: 'secret' }));
+  assert.equal((calls[0].init?.headers as Record<string, string>)['Content-Type'], 'application/x-www-form-urlencoded');
+  assert.equal(calls[0].init?.body, 'username=admin&password=secret');
 });
