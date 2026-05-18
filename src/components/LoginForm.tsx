@@ -54,7 +54,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onChangeView, onLoginSucce
       onLoginSuccess(user);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || '登入失败，请稍后重试');
+      setError(err.message || '登录失败，请稍后重试');
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +66,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onChangeView, onLoginSucce
       const user = await authService.guestLogin();
       onLoginSuccess(user);
     } catch (err: any) {
-      setError('访客登入失败');
+      setError('访客登录失败');
     } finally {
       setIsLoading(false);
     }
@@ -133,7 +133,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onChangeView, onLoginSucce
 
       <div className="space-y-3">
         <Button type="submit" isLoading={isLoading} fullWidth>
-          登入
+          登录
         </Button>
         
         <div className="relative">
@@ -153,7 +153,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onChangeView, onLoginSucce
           disabled={isLoading}
         >
           <LogIn className="mr-2 h-4 w-4 text-gray-500" />
-          访客登入
+          访客登录
         </Button>
       </div>
 

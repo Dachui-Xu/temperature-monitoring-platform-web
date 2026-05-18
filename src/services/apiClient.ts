@@ -1,4 +1,4 @@
-    import { ApiResponse } from '../types';
+    import type { ApiResponse } from '../types.js';
     
     // 配置后端基础地址
     // 如果您的后端所有接口都有 /api 前缀，请保留 /api
@@ -19,7 +19,7 @@
         'Content-Type': 'application/json',
       };
     
-      const storedToken = localStorage.getItem('auth_token');
+      const storedToken = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
       if (storedToken || token) {
         Object.assign(defaultHeaders, { 
           'Authorization': `Bearer ${token || storedToken}` 
@@ -36,17 +36,31 @@
     
       try {
         const response = await fetch(`${BASE_URL}${endpoint}`, config);
+        const responseText = await response.text();
+        let json: any;
+        try {
+          json = responseText ? JSON.parse(responseText) : undefined;
+        } catch (parseError) {
+          if (response.ok) {
+            throw parseError;
+          }
+          json = undefined;
+        }
     
         if (!response.ok) {
           if (response.status === 401) {
-            localStorage.removeItem('auth_token');
+            if (typeof localStorage !== 'undefined') {
+              localStorage.removeItem('auth_token');
+            }
             throw new Error('登录已过期，请重新登录');
           }
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || `请求失败: ${response.status}`);
+          throw new Error(json?.message || `请求失败: ${response.status}`);
         }
-    
-        const json = await response.json();
+
+        // 204/205 或空响应体的成功请求没有 JSON 内容，直接返回 undefined。
+        if (json === undefined) {
+          return undefined as T;
+        }
 
         // 如果后端使用包装格式 { code, message, data, success }
         if (json && typeof json === 'object' && 'success' in json && 'data' in json) {
