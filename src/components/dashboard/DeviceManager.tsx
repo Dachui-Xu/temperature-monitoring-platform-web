@@ -79,6 +79,8 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({ devices, setDevice
     iconType: 'blue' | 'cyan' | 'purple' | 'gray' | 'orange' | 'green';
     maxTemp: string;
     minTemp: string;
+    samplingInterval: string;
+    calibrationValue: string;
     pushEnabled: boolean;
     // backend fields
     device_id?: string;
@@ -97,6 +99,8 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({ devices, setDevice
     iconType: 'blue',
     maxTemp: '30',
     minTemp: '-10',
+    samplingInterval: '10',
+    calibrationValue: '',
     pushEnabled: true
   });
 
@@ -221,6 +225,8 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({ devices, setDevice
       iconType: device.iconType || 'blue',
       maxTemp: device.maxTemp?.toString() || '30',
       minTemp: device.minTemp?.toString() || '-10',
+      samplingInterval: '10',
+      calibrationValue: '',
       pushEnabled: true,
       device_id: device.device_id || device.id || '',
       ip_address: device.ip_address || '',
@@ -232,6 +238,20 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({ devices, setDevice
       last_active: device.last_active || ''
     });
     setIsConfigModalOpen(true);
+
+    const targetId = device.device_id || device.id;
+    deviceService.getDeviceConfiguration(targetId).then((config) => {
+      const findConfig = (key: string) => config.configurations.find(item => item.config_key === key)?.config_value;
+      setEditForm(prev => ({
+        ...prev,
+        maxTemp: String(findConfig('temperature_threshold') ?? prev.maxTemp),
+        minTemp: String(findConfig('min_temperature_threshold') ?? prev.minTemp),
+        samplingInterval: String(findConfig('sampling_interval') ?? prev.samplingInterval),
+        calibrationValue: config.calibration_value !== undefined ? String(config.calibration_value) : prev.calibrationValue,
+      }));
+    }).catch(() => {
+      // 部分后端可能尚未创建设备配置；保留设备基础信息继续编辑。
+    });
   };
 
   const handleSaveConfig = async () => {
@@ -245,17 +265,37 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({ devices, setDevice
       };
       try {
         const targetId = (selectedDevice as any).device_id || (selectedDevice as any).id || editForm.device_id || editForm.id;
-          const result = await deviceService.updateDevice(String(targetId), payload as any);
+        const maxTemp = Number(editForm.maxTemp);
+        const minTemp = Number(editForm.minTemp);
+        const samplingInterval = Number(editForm.samplingInterval);
+        const calibrationValue = editForm.calibrationValue.trim() ? Number(editForm.calibrationValue) : undefined;
+        if ([maxTemp, minTemp, samplingInterval, calibrationValue].some(value => value !== undefined && Number.isNaN(value))) {
+          alert('请输入有效的数字配置');
+          return;
+        }
 
-          // update the correct device by matching device_id (preferred) or id
-          const updatedDevices = devices.map(d => {
-            const key = (d as any).device_id || d.id;
-            if (String(key) === String(targetId)) {
-              return { ...d, ...result };
-            }
-            return d;
-          });
-          setDevices(updatedDevices);
+        const result = await deviceService.updateDevice(String(targetId), payload as any);
+        await deviceService.updateDeviceConfiguration(String(targetId), {
+          device_id: String(targetId),
+          configurations: [
+            { config_key: 'temperature_threshold', config_value: maxTemp },
+            { config_key: 'min_temperature_threshold', config_value: minTemp },
+            { config_key: 'sampling_interval', config_value: samplingInterval },
+          ],
+        });
+        if (calibrationValue !== undefined) {
+          await deviceService.calibrateDevice(String(targetId), calibrationValue);
+        }
+
+        // update the correct device by matching device_id (preferred) or id
+        const updatedDevices = devices.map(d => {
+          const key = (d as any).device_id || d.id;
+          if (String(key) === String(targetId)) {
+            return { ...d, ...result, maxTemp, minTemp };
+          }
+          return d;
+        });
+        setDevices(updatedDevices);
         onLog('CONFIG', editForm.name, `更新配置: ID=${selectedDevice.id}`);
         setIsConfigModalOpen(false);
       } catch (e) {
@@ -583,7 +623,7 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({ devices, setDevice
                 </div>
               </div>
 
-              {/* THRESHOLDS */}
+              {/* CONFIGURATIONS */}
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">报警阈值上限 (°C)</label>
@@ -592,6 +632,14 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({ devices, setDevice
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">报警阈值下限 (°C)</label>
                   <input type="number" className="block w-full rounded-lg border border-gray-300 p-2.5 text-sm focus:border-brand-500 focus:ring-brand-500" value={editForm.minTemp} onChange={(e) => setEditForm({...editForm, minTemp: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">采样间隔 (秒)</label>
+                  <input type="number" min="1" className="block w-full rounded-lg border border-gray-300 p-2.5 text-sm focus:border-brand-500 focus:ring-brand-500" value={editForm.samplingInterval} onChange={(e) => setEditForm({...editForm, samplingInterval: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">校准值</label>
+                  <input type="number" step="0.001" className="block w-full rounded-lg border border-gray-300 p-2.5 text-sm focus:border-brand-500 focus:ring-brand-500" value={editForm.calibrationValue} onChange={(e) => setEditForm({...editForm, calibrationValue: e.target.value})} placeholder="可选" />
                 </div>
               </div>
             </div>

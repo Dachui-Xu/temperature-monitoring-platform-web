@@ -62,37 +62,55 @@
           return undefined as T;
         }
 
-        // 如果后端使用包装格式 { code, message, data, success }
-        if (json && typeof json === 'object' && 'success' in json && 'data' in json) {
-          const resJson = json as ApiResponse<T>;
-          if (resJson.success === false) {
-            throw new Error(resJson.message || '操作失败');
-          }
-          return resJson.data;
+    if (!response.ok) {
+      if (response.status === 401) {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem('auth_token');
         }
-
-        // 非包装格式（例如 /users/login 返回 { access_token, token_type }），直接返回原始 JSON
-        return json as T;
-      } catch (error) {
-        console.error(`API Error [${endpoint}]:`, error);
-        throw error;
+        throw new Error('登录已过期，请重新登录');
       }
+      throw new Error(json?.message || json?.detail || `请求失败: ${response.status}`);
     }
-    
-    export const apiClient = {
-      get: <T>(url: string, options?: RequestOptions) => request<T>(url, { ...options, method: 'GET' }),
-      post: <T>(url: string, data: any, options?: RequestOptions) => {
-        const body = (typeof data === 'string' || data instanceof String) ? String(data) : JSON.stringify(data);
-        return request<T>(url, { ...options, method: 'POST', body });
-      },
-      patch: <T>(url: string, data: any, options?: RequestOptions) => {
-        const body = (typeof data === 'string' || data instanceof String) ? String(data) : JSON.stringify(data);
-        return request<T>(url, { ...options, method: 'PATCH', body });
-      },
-      put: <T>(url: string, data: any, options?: RequestOptions) => {
-        const body = (typeof data === 'string' || data instanceof String) ? String(data) : JSON.stringify(data);
-        return request<T>(url, { ...options, method: 'PUT', body });
-      },
-      
-      delete: <T>(url: string, options?: RequestOptions) => request<T>(url, { ...options, method: 'DELETE' }),
-    };
+
+    // 204/205 或空响应体的成功请求没有 JSON 内容，直接返回 undefined。
+    if (json === undefined) {
+      return undefined as T;
+    }
+
+    // 如果后端使用包装格式 { code, message, data, success }
+    if (json && typeof json === 'object' && 'success' in json && 'data' in json) {
+      const resJson = json as ApiResponse<T>;
+      if (resJson.success === false) {
+        throw new Error(resJson.message || '操作失败');
+      }
+      return resJson.data;
+    }
+
+    // 非包装格式（例如 /users/login 返回 { access_token, token_type }），直接返回原始 JSON
+    return json as T;
+  } catch (error) {
+    console.error(`API Error [${endpoint}]:`, error);
+    throw error;
+  }
+}
+
+export const apiClient = {
+  get: <T>(url: string, options?: RequestOptions) => request<T>(url, { ...options, method: 'GET' }),
+  post: <T>(url: string, data?: any, options?: RequestOptions) => {
+    const body = data === undefined ? undefined : (typeof data === 'string' || data instanceof String) ? String(data) : JSON.stringify(data);
+    return request<T>(url, { ...options, method: 'POST', body });
+  },
+  patch: <T>(url: string, data: any, options?: RequestOptions) => {
+    const body = (typeof data === 'string' || data instanceof String) ? String(data) : JSON.stringify(data);
+    return request<T>(url, { ...options, method: 'PATCH', body });
+  },
+  put: <T>(url: string, data: any, options?: RequestOptions) => {
+    const body = (typeof data === 'string' || data instanceof String) ? String(data) : JSON.stringify(data);
+    return request<T>(url, { ...options, method: 'PUT', body });
+  },
+
+  delete: <T>(url: string, data?: any, options?: RequestOptions) => {
+    const body = data === undefined ? undefined : JSON.stringify(data);
+    return request<T>(url, { ...options, method: 'DELETE', body });
+  },
+};
