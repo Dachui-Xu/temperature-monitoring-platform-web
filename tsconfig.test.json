@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": ".tmp/test-build",
+    "rootDir": ".",
+    "types": ["node"],
+    "allowImportingTsExtensions": false,
+    "noEmit": false
+  },
+  "include": ["src/services/apiClient.ts", "src/types.ts", "tests/**/*.ts"]
+}

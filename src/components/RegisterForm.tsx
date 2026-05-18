@@ -66,7 +66,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onChangeView, onRegi
           fullWidth 
           onClick={() => onChangeView('login')}
         >
-          返回登入页面
+          返回登录页面
         </Button>
       </div>
     );
@@ -133,7 +133,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onChangeView, onRegi
           className="text-sm"
         >
           <ArrowLeft className="mr-1 h-3 w-3" />
-          返回登入
+          返回登录
         </Button>
       </div>
     </form>
