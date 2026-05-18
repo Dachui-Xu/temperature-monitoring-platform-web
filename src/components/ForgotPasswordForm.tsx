@@ -41,7 +41,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onChange
           fullWidth 
           onClick={() => onChangeView('login')}
         >
-          返回登入
+          返回登录
         </Button>
       </div>
     );
@@ -75,7 +75,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onChange
           className="text-sm"
         >
           <ArrowLeft className="mr-1 h-3 w-3" />
-          返回登入
+          返回登录
         </Button>
       </div>
     </form>

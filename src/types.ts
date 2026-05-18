@@ -60,6 +60,20 @@ export interface Device {
   last_active?: string;
 }
 
+
+export interface DeviceConfigurationItem {
+  config_key: string;
+  config_value: number;
+  updated_at?: string;
+}
+
+export interface DeviceConfiguration {
+  device_id: string;
+  configurations: DeviceConfigurationItem[];
+  calibration_value?: number;
+  updated_at?: string;
+}
+
 export interface Alert {
   id: string;
   deviceId: string;

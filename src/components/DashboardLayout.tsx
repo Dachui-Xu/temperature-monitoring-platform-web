@@ -218,7 +218,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, onLogout
               className="justify-start text-slate-600 hover:text-red-600 hover:bg-red-50 hover:border-red-100 transition-colors border-slate-200 bg-white shadow-sm"
             >
               <LogOut className="mr-2 h-4 w-4" />
-              退出登入
+              退出登录
             </Button>
           </div>
         </div>
